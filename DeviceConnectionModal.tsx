@@ -5,7 +5,6 @@ import {
   Modal,
   SafeAreaView,
   Text,
-  StyleSheet,
   TouchableOpacity,
 } from "react-native";
 import { Device } from "react-native-ble-plx";
@@ -64,6 +63,7 @@ const DeviceModal: FC<DeviceModalProps> = (props) => {
       animationType="slide"
       transparent={false}
       visible={visible}
+      onRequestClose={closeModal}
     >
       <SafeAreaView style={styles.modalTitle}>
         <Text style={styles.modalTitleText}>
