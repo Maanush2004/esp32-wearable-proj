@@ -14,8 +14,17 @@ interface BluetoothLowEnergyApi {
     allDevices: Device[];
     connectToDevice: (deviceId:Device) => Promise<void>;
     connectedDevice: Device | null;
-    byteStream: DataView | null;
+    byteStream: DataStream | null;
     disconnectFromDevice: () => void;
+}
+
+interface DataStream {
+  ax: number;
+  ay: number;
+  az: number;
+  gx: number;
+  gy: number;
+  gz: number;
 }
 
 function useBLE(): BluetoothLowEnergyApi {
@@ -23,7 +32,7 @@ function useBLE(): BluetoothLowEnergyApi {
 
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-    const [byteStream, setByteStream] = useState<DataView | null>(null);
+    const [byteStream, setByteStream] = useState<DataStream>({ax:0,ay:0,az:0,gx:0,gy:0,gz:0});
 
     const requestAndroid31Permissions = async () => {
         const bluetoothScanPermission = await PermissionsAndroid.request(
@@ -124,7 +133,14 @@ function useBLE(): BluetoothLowEnergyApi {
         }
 
         const rawData = toByteArray(characteristic.value);
-        setByteStream(new DataView(rawData.buffer));
+        const dv = new DataView(rawData.buffer);
+        setByteStream({ax:dv.getFloat32(0,true)*9.81,
+                       ay:dv.getFloat32(4,true)*9.81,
+                       az:dv.getFloat32(8,true)*9.81,
+                       gx:dv.getFloat32(12,true)*Math.PI/180,
+                       gy:dv.getFloat32(16,true)*Math.PI/180,
+                       gz:dv.getFloat32(20,true)*Math.PI/180
+        });
     }
 
     const startStreamingData = async (device: Device) => {
@@ -141,7 +157,7 @@ function useBLE(): BluetoothLowEnergyApi {
         if (connectedDevice) {
             bleManager.cancelDeviceConnection(connectedDevice.id);
             setConnectedDevice(null);
-            setByteStream(null)
+            setByteStream({ax:0,ay:0,az:0,gx:0,gy:0,gz:0})
 
         }
     }
