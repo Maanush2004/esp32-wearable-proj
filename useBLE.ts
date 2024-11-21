@@ -15,6 +15,8 @@ interface BluetoothLowEnergyApi {
     connectToDevice: (deviceId:Device) => Promise<void>;
     connectedDevice: Device | null;
     byteStream: DataStream | null;
+    values: DataStream[];
+    resetValues(): void;
     disconnectFromDevice: () => void;
 }
 
@@ -33,6 +35,7 @@ function useBLE(): BluetoothLowEnergyApi {
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
     const [byteStream, setByteStream] = useState<DataStream>({ax:0,ay:0,az:0,gx:0,gy:0,gz:0});
+    const [values, setValues] = useState<DataStream[]>([]);
 
     const requestAndroid31Permissions = async () => {
         const bluetoothScanPermission = await PermissionsAndroid.request(
@@ -134,13 +137,23 @@ function useBLE(): BluetoothLowEnergyApi {
 
         const rawData = toByteArray(characteristic.value);
         const dv = new DataView(rawData.buffer);
-        setByteStream({ax:dv.getFloat32(0,true)*9.81,
-                       ay:dv.getFloat32(4,true)*9.81,
-                       az:dv.getFloat32(8,true)*9.81,
-                       gx:dv.getFloat32(12,true)*Math.PI/180,
-                       gy:dv.getFloat32(16,true)*Math.PI/180,
-                       gz:dv.getFloat32(20,true)*Math.PI/180
-        });
+        const value :DataStream = {
+          ax:dv.getFloat32(0,true)*9.81,
+          ay:dv.getFloat32(4,true)*9.81,
+          az:dv.getFloat32(8,true)*9.81,
+          gx:dv.getFloat32(12,true)*Math.PI/180,
+          gy:dv.getFloat32(16,true)*Math.PI/180,
+          gz:dv.getFloat32(20,true)*Math.PI/180
+          // The above is when using FastIMU.h library and the below is when using MPU6050.h library
+          // ax: dv.getInt16(0,true)/16384*9.8,
+          // ay: dv.getInt16(2,true)/16384*9.8,
+          // az: dv.getInt16(4,true)/16384*9.8,
+          // gx: dv.getInt16(6,true)/131*Math.PI/180,
+          // gy: dv.getInt16(8,true)/131*Math.PI/180,
+          // gz: dv.getInt16(10,true)/131*Math.PI/180
+        }
+        setByteStream(value);
+        setValues((prevValues) => [...prevValues, value])
     }
 
     const startStreamingData = async (device: Device) => {
@@ -162,6 +175,10 @@ function useBLE(): BluetoothLowEnergyApi {
         }
     }
 
+    const resetValues = () => {
+      setValues([]);
+    }
+
     return {
         scanForPeripherals,
         requestPermissions,
@@ -169,6 +186,8 @@ function useBLE(): BluetoothLowEnergyApi {
         connectToDevice,
         connectedDevice,
         byteStream,
+        values,
+        resetValues,
         disconnectFromDevice
     };
 
